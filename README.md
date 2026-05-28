@@ -1,302 +1,276 @@
-# Tech Challenge - Fase 1: Plataforma "ToggleMaster"
 
-Bem-vindo à primeira fase do Tech Challenge do curso de DevOps! Neste projeto, construiremos uma plataforma de *Feature Flag as a Service* chamada **ToggleMaster**.
-
-## 📖 Cenário
-
-A **DevOps Solutions Inc.** precisa de uma forma para que seus times de desenvolvimento possam lançar novas funcionalidades de forma segura e controlada. A solução é o **ToggleMaster**, uma plataforma interna que permitirá ativar ou desativar features em produção sem a necessidade de um novo deploy.
-
-Nesta primeira fase, nosso foco é criar e implantar o MVP (Produto Mínimo Viável) da plataforma, que consiste em uma API monolítica simples para gerenciar as *feature flags*.
-
-## 🎯 Objetivos da Fase 1
-
-O objetivo principal é aplicar os conceitos fundamentais de DevOps e Cloud. Ao final desta fase, você deverá ser capaz de:
-
-- Analisar uma aplicação monolítica e discutir suas vantagens e desvantagens.
-- Desenhar uma arquitetura de nuvem inicial para uma aplicação web na AWS.
-- Provisionar manualmente recursos essenciais na AWS (VPC, EC2, RDS, Security Groups).
-- Realizar o deploy de uma aplicação, configurando a conexão com um banco de dados externo.
-- Compreender e aplicar práticas básicas de segurança na AWS (IAM, Security Groups).
-
-## 🛠️ Pré-requisitos
-
-Antes de começar, garanta que você tenha:
-
-- [Docker](https://www.docker.com/products/docker-desktop/) e Docker Compose instalados.
-- Uma conta na [AWS Academy](https://awsacademy.instructure.com/) (você também pode usar o [Free Tier](https://aws.amazon.com/free/) para a maioria das tarefas).
-- Um cliente de API como [Postman](https://www.postman.com/) ou [Insomnia](https://insomnia.rest/), ou conhecimento em `curl`.
-
-### Instalando o Docker
-
-Escolha o guia para o seu sistema operacional.
-
-#### 🐧 Para Linux (Ubuntu, Debian, CentOS)
-
-O método mais simples é usar o script de conveniência oficial do Docker.
-
-1.  **Baixe o script de instalação:**
-    ```bash
-    curl -fsSL [https://get.docker.com](https://get.docker.com) -o get-docker.sh
-    ```
-2.  **Execute o script para instalar o Docker:**
-    ```bash
-    sudo sh get-docker.sh
-    ```
-3.  **Adicione seu usuário ao grupo do Docker (Passo Pós-Instalação Importante):**
-    Para poder executar comandos `docker` sem precisar usar `sudo` toda vez, adicione seu usuário ao grupo `docker`.
-    ```bash
-    sudo usermod -aG docker $USER
-    ```
-    > **Atenção:** Após executar o comando acima, você precisa **fazer logout e login novamente** na sua sessão (ou reiniciar a máquina) para que a alteração tenha efeito.
-
-#### 🪟 Para Windows ou 🍏 Para macOS
-
-A forma recomendada é instalar o **Docker Desktop**, que é uma aplicação gráfica que inclui o Docker Engine, o `docker compose` e outras ferramentas.
-
-1.  Acesse a página oficial e baixe o instalador: **[Docker Desktop](https://www.docker.com/products/docker-desktop/)**
-2.  Siga as instruções do instalador gráfico. Ele cuidará de toda a configuração para você.
-
-> **Nota sobre o `docker-compose`:** As versões mais recentes do Docker (instaladas pelos métodos acima) já vêm com o `docker compose` como um plugin. O comando moderno é `docker compose` (com espaço). A versão antiga, `docker-compose` (com hífen), está sendo descontinuada. Este projeto usará a sintaxe moderna.
-
+raw
+Readme · MD
+# ToggleMaster — Fase 01
+ 
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+ 
+> **FIAP POSTECH — DevOps e Arquitetura Cloud**  
+> Tech Challenge · Fase 01
+ 
+---
+ 
+## Sobre o Projeto
+ 
+O **ToggleMaster** é uma plataforma centralizada para gerenciamento de **Feature Flags** (Feature Toggles), que permite ativar ou desativar funcionalidades em produção de forma controlada, sem necessidade de novos deploys.
+ 
+Nesta primeira fase, implementei um **MVP monolítico** (Flask + PostgreSQL) com deploy manual em infraestrutura AWS, aplicando princípios de segurança, isolamento de rede e boas práticas de arquitetura cloud.
+ 
+---
+ 
+## Arquitetura AWS
+ 
+A infraestrutura foi projetada com foco em **isolamento por camadas**, **menor privilégio** e **separação clara entre recursos públicos e privados**.
+ 
+```
+                          Internet
+                              │
+                              ▼
+                    [ Internet Gateway ]
+                              │
+        ╔═════════════════════╪═════════════════════╗
+        ║        VPC  10.0.0.0/16                   ║
+        ║                     │                     ║
+        ║   ┌─────────────────▼──────────────────┐  ║
+        ║   │   SUBNET PÚBLICA  10.0.1.0/24      │  ║
+        ║   │   us-east-1a                       │  ║
+        ║   │                                    │  ║
+        ║   │        ┌──────────────────┐        │  ║
+        ║   │        │  EC2  t3.micro   │        │  ║
+        ║   │        │  Flask + Gunicorn│        │  ║
+        ║   │        │  porta 5000      │        │  ║
+        ║   │        └────────┬─────────┘        │  ║
+        ║   │   SG-EC2:       │                  │  ║
+        ║   │   SSH :22 ──► IP fixo              │  ║
+        ║   │   HTTP :5000 ──► 0.0.0.0/0         │  ║
+        ║   └─────────────────┼──────────────────┘  ║
+        ║                     │  (tráfego interno)  ║
+        ║   ┌─────────────────▼──────────────────┐  ║
+        ║   │   SUBNETS PRIVADAS                 │  ║
+        ║   │   10.0.2.0/24 (us-east-1a)         │  ║
+        ║   │   10.0.3.0/24 (us-east-1b)         │  ║
+        ║   │                                    │  ║
+        ║   │        ┌──────────────────┐        │  ║
+        ║   │        │  RDS db.t3.micro │        │  ║
+        ║   │        │  PostgreSQL      │        │  ║
+        ║   │        │  Single-AZ       │        │  ║
+        ║   │        └──────────────────┘        │  ║
+        ║   │   SG-RDS:                          │  ║
+        ║   │   :5432 ──► somente SG-EC2         │  ║
+        ║   └────────────────────────────────────┘  ║
+        ╚═══════════════════════════════════════════╝
+```
+ 
+> As subnets privadas **não possuem rota para a internet** — o RDS é inacessível externamente por design.
+ 
+### Recursos Provisionados
+ 
+| Recurso | Configuração |
+|---------|-------------|
+| VPC | CIDR `10.0.0.0/16` |
+| Subnet pública | `10.0.1.0/24` — us-east-1a |
+| Subnet privada 1 | `10.0.2.0/24` — us-east-1a |
+| Subnet privada 2 | `10.0.3.0/24` — us-east-1b |
+| Internet Gateway | Associado à subnet pública |
+| Route Table pública | `0.0.0.0/0 → IGW` |
+| Route Table privada | Sem rota para internet |
+| EC2 | `t3.micro` · Amazon Linux 2 · IP público habilitado |
+| RDS | `db.t3.micro` · PostgreSQL · Single-AZ · DB Subnet Group em 2 AZs |
+| Security Group EC2 | SSH :22 (IP fixo) · HTTP :5000 (0.0.0.0/0) |
+| Security Group RDS | PostgreSQL :5432 somente via SG-EC2 |
+ 
+---
+ 
+## Provisionamento da Infraestrutura
+ 
+### Ordem de criação no Console AWS
+ 
+```
+VPC
+ └─► Subnets (1 pública + 2 privadas em AZs distintas)
+      └─► Internet Gateway (associar à VPC)
+           └─► Route Tables (pública com 0.0.0.0/0 → IGW; privada sem saída)
+                └─► Security Groups (SG-EC2 e SG-RDS)
+                     └─► DB Subnet Group (ambas as subnets privadas)
+                          └─► RDS PostgreSQL
+                               └─► EC2 (subnet pública, IP público habilitado)
+```
+ 
+### Configuração da EC2 via SSH
+ 
+```bash
+# Conectar à instância
+ssh -i sua-chave.pem ec2-user@<IP_PUBLICO_EC2>
+ 
+# Instalar dependências do sistema
+sudo yum update -y
+sudo yum install python3 python3-pip git -y
+ 
+# Clonar o repositório
+git clone https://github.com/MatheusYurirs/toggle-master-monolith-api.git
+cd toggle-master-monolith-api
+ 
+# Criar ambiente virtual e instalar dependências Python
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+ 
+### Variáveis de Ambiente — Persistência para o Gunicorn
+ 
+> ⚠️ `export` simples no terminal **não propaga** para processos iniciados com `sudo`.  
+> A solução é persistir em `/etc/environment` e usar o flag `-E` no Gunicorn:
+ 
+```bash
+# Persistir variáveis no sistema
+sudo tee -a /etc/environment <<EOF
+DB_HOST=<ENDPOINT_RDS>
+DB_PORT=5432
+DB_NAME=togglemaster
+DB_USER=<SEU_USUARIO>
+DB_PASSWORD=<SUA_SENHA>
+EOF
+ 
+# Recarregar no shell atual
+source /etc/environment
+```
+ 
+### Inicialização e Execução
+ 
+```bash
+# Inicializar o schema do banco de dados
+flask init-db
+ 
+# Subir a aplicação com Gunicorn (herda o ambiente completo)
+sudo -E venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
+```
+ 
+Acesse em: `http://<IP_PUBLICO_EC2>:5000`
+ 
+---
+ 
+## Segurança
+ 
+A arquitetura segue o princípio de **defesa em profundidade**: cada camada acessa apenas o que precisa, sem exposição desnecessária.
+ 
+| Decisão | Justificativa |
+|---------|--------------|
+| RDS em subnets privadas | Banco inacessível diretamente da internet |
+| SG-RDS referencia SG-EC2 (não IP) | Acesso por identidade de recurso — resiliente a mudanças de IP |
+| SSH restrito a IP fixo | Reduz superfície de ataque ao acesso administrativo |
+| Tráfego EC2 ↔ RDS exclusivamente dentro da VPC | Dados do banco nunca trafegam pela internet |
+| Credenciais via variáveis de ambiente | Nenhuma credencial hardcoded ou versionada no repositório |
+| Subnets privadas sem rota para internet | Camada de dados completamente isolada por roteamento |
+ 
+### Fluxo de Rede
+ 
+```
+Usuário
+   │
+   ▼ HTTPS/HTTP
+Internet Gateway
+   │
+   ▼
+EC2 (Subnet Pública) — SG libera :5000
+   │
+   │ Tráfego interno VPC
+   ▼
+RDS (Subnet Privada) — SG aceita :5432 somente do SG-EC2
+```
+ 
+---
+ 
+## Análise 12-Factor App
+ 
+Avaliação da aderência da aplicação aos [12 fatores](https://12factor.net/pt_br/) no contexto desta fase.
+ 
+### ✅ Fatores Atendidos
+ 
+| Fator | Como atende |
+|-------|------------|
+| **F1 · Codebase** | Repositório único no GitHub; mesmo código para dev e produção, sem bifurcações |
+| **F2 · Dependências** | `requirements.txt` com versões fixas; Dockerfile garante ambiente reproduzível e isolado |
+| **F4 · Backing Services** | PostgreSQL consumido via variáveis de ambiente (`DB_HOST`, `DB_PORT`...); troca entre Docker local e RDS sem alterar nenhuma linha de código |
+| **F6 · Processos** | Aplicação completamente stateless — todo estado persiste exclusivamente no banco; reiniciar a instância não perde dados de negócio |
+| **F7 · Port Binding** | Flask expõe o serviço via binding direto da porta 5000, sem dependência de servidor externo como Apache ou Tomcat |
+ 
+### ⚠️ Fatores Parcialmente Atendidos
+ 
+| Fator | O que já funciona | O que falta |
+|-------|-------------------|-------------|
+| **F3 · Config** | Variáveis de ambiente usadas corretamente na aplicação | Credenciais ainda expostas no `docker-compose.yaml`; corrigir com `.env` + `.gitignore` |
+| **F8 · Concorrência** | App e banco em containers separados, escalonáveis de forma independente | Escalar horizontalmente a camada de aplicação ainda exige um ALB à frente de múltiplas instâncias EC2 |
+ 
+### 🔧 Fatores a Evoluir nas Próximas Fases
+ 
+| Fator | Gap atual | Evolução prevista |
+|-------|-----------|-------------------|
+| **F5 · Build/Release/Run** | Build e run integrados via docker-compose; sem pipeline formal nem artefatos imutáveis | Pipeline CI/CD com GitHub Actions — build → tag de release → deploy (Fase 3) |
+| **F9 · Descartabilidade** | Infraestrutura criada manualmente; não pode ser recriada automaticamente | IaC com Terraform — provisionar toda a stack do zero em minutos (Fase 2) |
+| **F10 · Paridade Dev/Prod** | Dev usa Docker local; prod usa EC2 + RDS sem padronização formal entre ambientes | Padronizar com containers + variáveis controladas por pipeline de CI/CD |
+| **F11 · Logs** | Logs não direcionados ao stdout de forma estruturada | Integração com CloudWatch Logs via agente ou driver de container |
+| **F12 · Admin Processes** | `flask init-db` executado manualmente no terminal | Tornar step isolado e automatizado no pipeline de deploy |
+ 
+> **Placar desta fase:** 5 atendidos · 2 parciais · 5 a evoluir.  
+> Os gaps não são falhas — são o roteiro natural das Fases 2 e 3, onde IaC, CI/CD e observabilidade entram em cena.
+ 
+---
+ 
+## Estimativa de Custos AWS
+ 
+Região: **us-east-1 (N. Virginia)** — escolhida por ser a mais econômica da AWS com maior cobertura de serviços. Para produção com usuários brasileiros, `sa-east-1 (São Paulo)` é recomendada para reduzir latência.
+ 
+| Serviço | On-Demand / mês |
+|---------|:--------------:|
+| EC2 `t3.micro` | $7,59 |
+| RDS `db.t3.micro` PostgreSQL | $15,44 |
+| IP Público | $3,65 |
+| Transferência de dados (~10 GB) | $0,90 |
+| VPC, Subnets, IGW, Route Tables, SGs | $0,00 |
+| **Total estimado** | **$27,58** |
+ 
+> 💡 **Com AWS Free Tier (primeiro ano):** EC2 e RDS cobertos pelas 750h/mês gratuitas.  
+> Custo efetivo: **$4,55/mês** — apenas IP público e transferência de dados.
+ 
+---
+ 
+## Desafios e Decisões Técnicas
+ 
+### DB Subnet Group rejeitado com zona única
+A AWS exige que o DB Subnet Group contenha subnets em **pelo menos duas Availability Zones**. A configuração inicial com apenas `us-east-1a` foi recusada pelo console. Solução: criar a segunda subnet privada em `us-east-1b` e incluir ambas no grupo — o que também prepara a arquitetura para futura alta disponibilidade com Multi-AZ.
+ 
+### Porta 5000 inacessível externamente
+A aplicação estava rodando normalmente na EC2, mas inacessível pelo navegador. Causa: ausência da regra de ingress `:5000 → 0.0.0.0/0` no Security Group da EC2. Regra adicionada, acesso normalizado imediatamente.
+ 
+### RDS criado sem `DB Name`
+A instância RDS foi criada sem preencher o campo `DB Name`. A aplicação inicializava sem erros, mas falhava silenciosamente na conexão. Solução: recriar a instância com o nome do banco definido — detalhe pequeno, impacto total.
+ 
+### Variáveis de ambiente não propagando para o Gunicorn
+`export` no terminal não propaga para processos filhos iniciados com `sudo`. O Gunicorn subia sem as variáveis de banco configuradas. Solução: persistir em `/etc/environment` e executar com `sudo -E venv/bin/gunicorn` para herdar o ambiente completo do sistema.
+ 
+### Username `user` reservado no PostgreSQL
+`user` é palavra reservada no PostgreSQL e não pode ser nome de usuário de uma instância RDS. Identificado na criação; resolvido escolhendo um username alternativo.
+ 
+---
+ 
+## Execução Local
+ 
+```bash
+git clone https://github.com/MatheusYurirs/toggle-master-monolith-api.git
+cd toggle-master-monolith-api
+ 
+# Criar .env (nunca versionar)
+cp .env.example .env  # ajuste as variáveis conforme necessário
+ 
+# Subir aplicação + banco via Docker Compose
+docker compose up --build
+ 
+# Acesse: http://localhost:5000
+```
+ 
 ---
 
-## 🚀 Como Executar Localmente (com Docker)
-
-Para facilitar o desenvolvimento, o projeto está configurado para rodar com Docker Compose. Ele irá subir a aplicação e um banco de dados PostgreSQL com um único comando.
-
-1.  **Clone o repositório:**
-    ```bash
-    git clone <url-do-seu-repositorio>
-    ```
-
-2.  **Navegue até a pasta do projeto:**
-    ```bash
-    cd toggle-master-monolith
-    ```
-
-3.  **Construa e inicie os contêineres:**
-    ```bash
-    docker-compose up --build
-    ```
-
-4.  **Verifique se a aplicação está no ar:**
-    Abra um novo terminal e execute o seguinte comando `curl`:
-    ```bash
-    curl http://localhost:5000/health
-    ```
-    Você deve receber a seguinte resposta:
-    ```json
-    {
-      "status": "ok"
-    }
-    ```
-
-5.  **Para encerrar a execução:**
-    No terminal onde o `docker-compose` está rodando, pressione `Ctrl + C`. Em seguida, para garantir que os contêineres e a rede sejam removidos, execute:
-    ```bash
-    docker-compose down
-    ```
-
-### Endpoints da API
-
-Você pode usar o Postman ou `curl` para interagir com a API rodando localmente (`http://localhost:5000`) ou na sua instância EC2 (`http://<ip-publico-ec2>:5000`).
-
-| Método | Endpoint                    | Body (Exemplo)                           | Descrição                      |
-| :----- | :-------------------------- | :--------------------------------------- | :------------------------------- |
-| `POST` | `/flags`                    | `{"name": "new-feature", "is_enabled": true}` | Cria uma nova feature flag.      |
-| `GET`  | `/flags`                    | N/A                                      | Lista todas as flags existentes. |
-| `GET`  | `/flags/<nome-da-flag>`     | N/A                                      | Retorna o status de uma flag.    |
-| `PUT`  | `/flags/<nome-da-flag>`     | `{"is_enabled": false}`                  | Atualiza o status de uma flag.   |
-
-#### Exemplos com `curl`
-
-Abra seu terminal e utilize os comandos abaixo para interagir com a API.
-
-**1. Criar uma nova flag (`new-feature`)**
-```bash
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"name": "new-feature", "is_enabled": true}' \
-  http://localhost:5000/flags
-```
-
-**Saída esperada:** 
-```bash
-{
-  "message": "Flag 'new-feature' created successfully"
-}
-```
-
-**2. Listar todas as flags:**
-```bash
-curl -X GET http://localhost:5000/flags
-```
-
-**Saída esperada:** 
-```bash
-[
-  {
-    "is_enabled": true,
-    "name": "new-feature"
-  }
-]
-```
-
-**3. Consultar uma flag específica (`new-feature`):**
-```bash
-curl -X GET http://localhost:5000/flags/new-feature
-```
-
-**Saída esperada:** 
-```bash
-{
-  "is_enabled": true,
-  "name": "new-feature"
-}
-```
-
-**4. Atualizar uma flag (desativar a `new-feature`):**
-```bash
-curl -X PUT \
-  -H "Content-Type: application/json" \
-  -d '{"is_enabled": false}' \
-  http://localhost:5000/flags/new-feature
-```
-
-**Saída esperada:** 
-```bash
-{
-  "message": "Flag 'new-feature' updated"
-}
-```
-
-## 💻 O Desafio
-
-Sua missão é pegar esta aplicação monolítica e implantá-la na AWS. O ambiente local com Docker serve para você entender e testar a aplicação, mas a entrega final deve ser a aplicação rodando na nuvem.
-
-**Suas tarefas são:**
-
-1.  **Análise da Aplicação:** Estude o arquivo `app.py` e os demais arquivos para entender a estrutura básica de como a aplicação funciona, principalmente o `Dockerfile` e `Docker compose`.
-2.  **Arquitetura na Nuvem:** Desenhe a arquitetura de implantação e estime os custos.
-3.  **Deploy Manual na AWS:** Crie a infraestrutura (EC2, RDS, etc.) e siga o guia de instalação abaixo para implantar a aplicação.
-
----
-
-## ⚙️ Guia de Instalação e Deploy na EC2
-
-Este guia assume que você já criou uma instância EC2 e um banco de dados RDS, e que consegue se conectar à sua EC2 via SSH.
-
-> **Importante:** Lembre-se de configurar o **Security Group** da sua instância EC2 para permitir tráfego de entrada na porta `5000` (para a aplicação) e na porta `22` (para o SSH). O Security Group do RDS deve permitir tráfego na porta `5432` vindo do Security Group da sua EC2.
-
-Escolha a opção correspondente ao sistema operacional da sua instância EC2.
-
-### Opção A: Para Amazon Linux 2 ou Amazon Linux 2023
-
-1.  **Atualize o sistema e instale as ferramentas:**
-    ```bash
-    sudo yum update -y
-    sudo yum install -y git python3 python3-pip
-    ```
-
-2.  **Clone o repositório do seu projeto:**
-    ```bash
-    git clone <url-do-seu-repositorio>
-    cd toggle-master-monolith
-    ```
-
-3.  **Crie e ative um ambiente virtual para o Python:**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    # Seu prompt do terminal deve mudar, indicando que o ambiente virtual está ativo.
-    ```
-
-4.  **Instale as dependências da aplicação:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### Opção B: Para Ubuntu Server 20.04 / 22.04 LTS
-
-1.  **Atualize o sistema e instale as ferramentas:**
-    ```bash
-    sudo apt update && sudo apt upgrade -y
-    sudo apt install -y git python3-pip python3-venv
-    ```
-
-2.  **Clone o repositório do seu projeto:**
-    ```bash
-    git clone <url-do-seu-repositorio>
-    cd toggle-master-monolith
-    ```
-
-3.  **Crie e ative um ambiente virtual para o Python:**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    # Seu prompt do terminal deve mudar, indicando que o ambiente virtual está ativo.
-    ```
-
-4.  **Instale as dependências da aplicação:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
----
-
-### Executando a Aplicação (Comandos iguais para ambos os sistemas)
-
-Após instalar as dependências, siga estes passos para configurar e rodar a aplicação.
-
-1.  **Exporte as variáveis de ambiente:**
-    A aplicação precisa saber como se conectar ao banco de dados RDS. Execute os comandos `export` abaixo, substituindo os valores pelos dados do seu RDS.
-
-    > **⚠️ AVISO DE SEGURANÇA:** Estes comandos armazenam as credenciais apenas na sessão atual do terminal. **NUNCA** salve suas senhas e endpoints diretamente no código ou em scripts versionados no Git!
-
-    ```bash
-    export DB_HOST='<aqui-vai-o-endpoint-do-seu-rds>'
-    export DB_NAME='<nome-do-banco-de-dados-que-voce-criou>'
-    export DB_USER='<usuario-admin-do-rds>'
-    export DB_PASSWORD='<senha-do-usuario-admin>'
-    ```
-
-2.  **Inicie a aplicação com Gunicorn:**
-    Gunicorn é um servidor WSGI recomendado para produção. O comando `0.0.0.0` faz com que a aplicação escute em todas as interfaces de rede da EC2, tornando-a acessível publicamente.
-
-    ```bash
-    gunicorn --bind 0.0.0.0:5000 app:app
-    ```
-
-3.  **Verifique o acesso:**
-    A aplicação estará rodando. Agora você pode acessá-la usando o IP Público ou o DNS Público da sua instância EC2, seguido da porta `5000`.
-    Exemplo: `http://54.207.111.222:5000/health`
-
-> **Nota:** O comando `gunicorn` acima executa a aplicação no *foreground*. Se você fechar sua sessão SSH, a aplicação irá parar. Em um ambiente de produção real, usaríamos um gerenciador de processos como `systemd` para rodar a aplicação como um serviço, mas para este desafio, rodar no foreground é suficiente.
-
----
-
-## 딜 Entregáveis da Fase 1
-
-Você deve entregar os seguintes itens:
-
-1.  **Vídeo de Demonstração (até 15 minutos):**
-    - Apresentação rápida da aplicação rodando localmente com Docker.
-    - Explicação do seu diagrama de arquitetura para a AWS.
-    - Demonstração da aplicação rodando na EC2, provando que está conectada ao RDS.
-    - Mostre as configurações de Security Group que garantem a segurança do ambiente.
-
-2.  **Documentação:**
-    - Link para o seu diagrama de arquitetura ([Miro](https://miro.com/), [Diagrams.net](https://app.diagrams.net/), etc.).
-
-3.  **Relatório de Entrega (`ENTREGA.md` ou `.pdf`):**
-    - Nomes dos participantes.
-    - Link para o vídeo e para a documentação.
-    - Resumo dos desafios encontrados e das decisões tomadas.
-
-## 💡 Dicas e Pontos de Atenção
-
-- **⚠️ SEGURANÇA:** Nunca, jamais, suba suas chaves de acesso da AWS para o seu repositório Git.
-- **💸 CUSTOS:** Fique atento aos recursos que você cria na AWS. Utilize o *AWS Academy* ou *Free Tier* sempre que possível e **lembre-se de desligar ou remover os recursos** após a avaliação do desafio.
-- **📝 DOCUMENTAÇÃO:** Uma boa documentação é parte crucial da cultura DevOps. Descreva suas escolhas e justifique-as.
-
-Boa sorte!
+*FIAP POSTECH — Pós-Graduação em DevOps e Arquitetura Cloud · Matheus Yuri Rodrigues da Silva · 2025*
