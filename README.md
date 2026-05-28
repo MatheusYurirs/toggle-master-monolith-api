@@ -1,6 +1,3 @@
-
-raw
-Readme · MD
 # ToggleMaster — Fase 01
  
 ![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
