@@ -3,10 +3,7 @@ raw
 Readme · MD
 # ToggleMaster — Fase 01
  
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
  
 > **FIAP POSTECH — DevOps e Arquitetura Cloud**  
 > Tech Challenge · Fase 01
